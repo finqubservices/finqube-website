@@ -115,7 +115,7 @@ window.FINQUBE = {
 
   /* ---------- Visitor statistics ----------
      Paste the token from Cloudflare Web Analytics here (see setup steps). */
-  analyticsToken: "",
+  analyticsToken: "35a312544dce4eea903921a0fca686cb",
 
   /* ---------- Updates ----------
      Newest first. Two kinds:
