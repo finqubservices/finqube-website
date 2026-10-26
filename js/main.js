@@ -40,7 +40,8 @@
   var nav = [
     ["home", "index.html", "Home"],
     ["services", "services.html", "Services"],
-    ["vlogs", "vlogs.html", "Vlogs"],
+    ["updates", "updates.html", "Updates"],
+    ["faq", "faq.html", "FAQ"],
     ["about", "about.html", "About"]
   ];
   var header = document.getElementById("site-header");
@@ -76,6 +77,7 @@
       '<p class="f-tag">Accurate · Reliable · Trusted</p><div class="f-social">' + socialLinks("soc") + "</div></div>" +
       '<div><h4>India</h4><ul><li><a href="services.html#accounting">Accounting &amp; MIS</a></li><li><a href="services.html#direct-tax">Income tax &amp; TDS</a></li><li><a href="services.html#gst">GST</a></li><li><a href="services.html#consulting">Business consulting</a></li></ul></div>' +
       (GLOBAL_LIVE ? "<div><h4>Global</h4><ul>" + countryLinks + "</ul></div>" : "") +
+      '<div><h4>More</h4><ul><li><a href="updates.html">Updates</a></li><li><a href="faq.html">FAQ</a></li><li><a href="reviews.html">Client reviews</a></li><li><a href="about.html">About us</a></li><li><a href="privacy.html">Privacy policy</a></li></ul></div>' +
       '<div><h4>Contact</h4><ul class="f-contact">' +
       '<li>' + ICON.phone + '<span class="sel">' + esc(C.phone) + "</span></li>" +
       '<li>' + ICON.mail + '<span class="sel">' + esc(C.email) + "</span></li>" +
@@ -117,6 +119,15 @@
       else if (e.target.closest(".wp-list a")) picker.hidden = true;
     });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") picker.hidden = true; });
+  }
+
+  /* ---------- Visitor statistics (Cloudflare Web Analytics, no cookies) ---------- */
+  if (C.analyticsToken && location.hostname.indexOf("finqubeservices.com") !== -1) {
+    var cf = document.createElement("script");
+    cf.defer = true;
+    cf.src = "https://static.cloudflareinsights.com/beacon.min.js";
+    cf.setAttribute("data-cf-beacon", JSON.stringify({ token: C.analyticsToken }));
+    document.head.appendChild(cf);
   }
 
   /* ---------- Fill contact placeholders ---------- */
@@ -181,23 +192,103 @@
     }
   }
 
-  /* ---------- Vlogs ---------- */
-  document.querySelectorAll("[data-vlogs]").forEach(function (vg) {
-    var list = C.vlogs || [];
+  /* ---------- Updates (videos and notes) ---------- */
+  function fmtDate(d) {
+    if (!d) return "";
+    var x = new Date(d + "T00:00:00");
+    return isNaN(x) ? "" : x.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  }
+  document.querySelectorAll("[data-updates]").forEach(function (vg) {
+    var list = C.updates || C.vlogs || [];
     var limit = parseInt(vg.getAttribute("data-limit") || "0", 10);
     if (limit) list = list.slice(0, limit);
     if (!list.length) {
-      vg.innerHTML = '<div class="vlog-empty"><div class="ve-icon">' + ICON.youtube + "</div><div><h3>First videos are on the way</h3>" +
-        "<p>Short explainers on GST, income tax, TDS and running a business in India. Follow us on Instagram to see them first.</p></div></div>";
-    } else {
-      vg.innerHTML = list.map(function (v) {
-        var d = v.date ? new Date(v.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "";
-        return '<a class="vlog" href="https://www.youtube.com/watch?v=' + esc(v.id) + '" target="_blank" rel="noopener">' +
-          '<div class="vlog-thumb"><img loading="lazy" src="https://i.ytimg.com/vi/' + esc(v.id) + '/hqdefault.jpg" alt=""><span class="play">' + ICON.youtube + "</span></div>" +
-          "<h3>" + esc(v.title) + "</h3>" + (d ? '<p class="vlog-date">' + d + "</p>" : "") + "</a>";
-      }).join("");
+      vg.innerHTML = '<div class="vlog-empty"><div class="ve-icon">' + ICON.youtube + "</div><div><h3>First updates are on the way</h3>" +
+        "<p>Short videos and notes on GST, income tax, TDS and running a business in India. Follow us on Instagram to see them first.</p></div></div>";
+      return;
     }
+    vg.innerHTML = list.map(function (v) {
+      var d = fmtDate(v.date);
+      var vid = v.youtube || v.id;
+      if (vid) {
+        return '<a class="vlog" href="https://www.youtube.com/watch?v=' + esc(vid) + '" target="_blank" rel="noopener">' +
+          '<div class="vlog-thumb"><img loading="lazy" src="https://i.ytimg.com/vi/' + esc(vid) + '/hqdefault.jpg" alt=""><span class="play">' + ICON.youtube + "</span></div>" +
+          '<p class="vlog-date">Video' + (d ? " · " + d : "") + "</p><h3>" + esc(v.title) + "</h3></a>";
+      }
+      var inner = '<p class="vlog-date">Update' + (d ? " · " + d : "") + "</p><h3>" + esc(v.title) + "</h3>" +
+        (v.summary ? "<p>" + esc(v.summary) + "</p>" : "") + (v.link ? '<span class="more">Read more ' + ICON.arrow + "</span>" : "");
+      return v.link ? '<a class="note-card" href="' + esc(v.link) + '" target="_blank" rel="noopener">' + inner + "</a>"
+                    : '<div class="note-card">' + inner + "</div>";
+    }).join("");
   });
+
+  /* ---------- Reviews (only approved ones in config.js are shown) ---------- */
+  function stars(n) {
+    n = Math.max(0, Math.min(5, parseInt(n, 10) || 0));
+    return '<span class="stars" aria-label="' + n + ' out of 5">' + "★★★★★".slice(0, n) + '<span class="off">' + "★★★★★".slice(n) + "</span></span>";
+  }
+  var reviews = C.reviews || [];
+  document.querySelectorAll("[data-reviews]").forEach(function (el) {
+    var list = reviews;
+    var limit = parseInt(el.getAttribute("data-limit") || "0", 10);
+    if (limit) list = list.slice(0, limit);
+    el.innerHTML = list.length ? list.map(function (r) {
+      return '<figure class="review">' + stars(r.rating) + "<blockquote>" + esc(r.text) + "</blockquote>" +
+        "<figcaption><b>" + esc(r.name) + "</b>" + (r.place ? ", " + esc(r.place) : "") +
+        (r.service ? '<span class="rv-svc">' + esc(r.service) + "</span>" : "") + "</figcaption></figure>";
+    }).join("") : '<div class="vlog-empty"><div><h3>No reviews published yet</h3><p>We are a new practice. Reviews from our clients will appear here after we verify them.</p></div></div>';
+  });
+  document.querySelectorAll("[data-reviews-section]").forEach(function (el) { el.hidden = !reviews.length; });
+
+  document.querySelectorAll("[data-review-form]").forEach(function (el) {
+    var services = (C.interests || ["Accounting & bookkeeping", "MIS reporting", "Income tax / ITR", "TDS", "GST", "Company / LLP registration", "Business consulting", "Something else"]);
+    el.innerHTML = '<form class="enquiry review-form" novalidate>' +
+      '<div class="q"><label for="rv-name">Your name</label><input id="rv-name" name="name" required autocomplete="name" placeholder="e.g. Ravi K."></div>' +
+      '<div class="q"><label for="rv-place">City or business name <em>Optional</em></label><input id="rv-place" name="place" placeholder="e.g. Kakinada"></div>' +
+      '<div class="q"><label for="rv-email">Email <em>Not published, used only to confirm you are a client</em></label><input id="rv-email" name="email" type="email" required autocomplete="email"></div>' +
+      '<div class="q"><label for="rv-service">Service you used</label><select id="rv-service" name="service">' + services.map(function (o) { return "<option>" + esc(o) + "</option>"; }).join("") + "</select></div>" +
+      '<fieldset class="q"><legend>Your rating</legend><div class="rate">' + [5, 4, 3, 2, 1].map(function (n) {
+        return '<input type="radio" name="rating" id="rv-r' + n + '" value="' + n + '"' + (n === 5 ? " checked" : "") + '><label for="rv-r' + n + '" title="' + n + ' stars">★</label>';
+      }).join("") + "</div></fieldset>" +
+      '<div class="q"><label for="rv-text">Your review</label><textarea id="rv-text" name="text" rows="4" required placeholder="How did we help you?"></textarea></div>' +
+      '<label class="consent-check"><input type="checkbox" name="publish" id="rv-publish" value="yes"><span>I agree that my review, name and city may be shown on the Finqube Services website.</span></label>' +
+      '<button class="btn btn-solid" type="submit">Submit review</button><div class="form-result" hidden></div></form>';
+  });
+
+  document.addEventListener("submit", function (e) {
+    var form = e.target;
+    if (!form.classList.contains("review-form")) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var fd = new FormData(form);
+    var res = form.querySelector(".form-result");
+    res.hidden = false; res.className = "form-result err";
+    var name = (fd.get("name") || "").trim(), email = (fd.get("email") || "").trim(), text = (fd.get("text") || "").trim();
+    if (!name) { res.textContent = "Please enter your name."; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { res.textContent = "Please enter a valid email address."; return; }
+    if (text.length < 10) { res.textContent = "Please write a few words about your experience."; return; }
+    if (!fd.get("publish")) { res.textContent = "Please tick the box to allow us to publish your review."; return; }
+    if (!C.web3formsKey) { res.textContent = "Reviews can't be submitted right now. Please send yours on WhatsApp."; return; }
+    var btn = form.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = "Submitting…";
+    var payload = {
+      access_key: C.web3formsKey, subject: "New review for approval: " + name + " (" + fd.get("rating") + " stars)",
+      from_name: "Finqube website", replyto: email,
+      "Name": name, "City / business": fd.get("place") || "-", "Email": email, "Service": fd.get("service"),
+      "Rating": fd.get("rating") + " / 5", "Review": text, "Consent to publish": "Yes",
+      "To publish": "Add this review to the reviews list in js/config.js"
+    };
+    fetch("https://api.web3forms.com/submit", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(payload) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.success) throw new Error();
+        form.reset();
+        res.className = "form-result ok";
+        res.innerHTML = "<b>Thank you, " + esc(name) + ".</b> Your review has been received and will appear on the website once our team has checked it.";
+      })
+      .catch(function () { res.textContent = "We could not submit your review just now. Please try again in a few minutes."; })
+      .finally(function () { btn.disabled = false; btn.textContent = "Submit review"; });
+  }, true);
 
   /* ---------- Enquiry questionnaire ---------- */
   var INTERESTS = (C.interests || ["Accounting & bookkeeping", "MIS reporting", "Income tax / ITR", "TDS", "GST", "Company / LLP registration", "Business consulting", "Something else"]);
@@ -220,7 +311,9 @@
       '<div class="q"><label for="' + id + '-email"><span class="qn">3</span>Email</label><input id="' + id + '-email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div>' +
       interest + times +
       '<div class="q"><label for="' + id + '-msg">Anything else we should know? <em>Optional</em></label><textarea id="' + id + '-msg" name="message" rows="3" placeholder="e.g. Proprietorship with GST, about 40 invoices a month"></textarea></div>' +
-      '<button class="btn btn-solid" type="submit">Submit</button><div class="form-result" hidden></div></form>';
+      '<button class="btn btn-solid" type="submit">Submit</button>' +
+      '<p class="consent">By submitting, you agree that Finqube Services may contact you by call, WhatsApp or email about this enquiry. See our <a href="privacy.html">Privacy Policy</a>.</p>' +
+      '<div class="form-result" hidden></div></form>';
   }
   document.querySelectorAll("[data-form]").forEach(function (el) {
     el.innerHTML = formHTML(el.getAttribute("data-form"), el.getAttribute("data-topic"));

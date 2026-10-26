@@ -113,11 +113,23 @@ window.FINQUBE = {
     }
   ],
 
-  /* ---------- Vlogs ----------
-     Upload the video to YouTube, copy the ID from the link
-     (youtube.com/watch?v=THIS_PART or youtu.be/THIS_PART) and add a line.
-     Newest first. */
-  vlogs: [
-    // { id: "dQw4w9WgXcQ", title: "GST registration: documents you need", date: "2026-11-01" },
+  /* ---------- Visitor statistics ----------
+     Paste the token from Cloudflare Web Analytics here (see setup steps). */
+  analyticsToken: "",
+
+  /* ---------- Updates ----------
+     Newest first. Two kinds:
+     Video:  { title: "GST registration: documents you need", date: "2026-11-01", youtube: "VIDEO_ID" },
+     Note:   { title: "New TDS form numbers from April 2026", date: "2026-11-05", summary: "One or two lines.", link: "" },
+     VIDEO_ID is the part after watch?v= or youtu.be/ in the YouTube link. */
+  updates: [
+  ],
+
+  /* ---------- Client reviews ----------
+     Reviews submitted on the website come to your email first.
+     Only reviews you add here appear on the website. Newest first.
+     Example:
+     { name: "Ravi K.", place: "Kakinada", service: "GST", rating: 5, text: "Their review text exactly as submitted." }, */
+  reviews: [
   ]
 };
